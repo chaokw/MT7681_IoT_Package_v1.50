@@ -60,6 +60,8 @@
 #define		AT_CMD_UART2WIFI		"Uart2WiFi"
 #define		AT_CMD_VER				"Ver"
 #define		AT_CMD_REBOOT			"Reboot"
+#define		AT_CMD_MACLISTEN		"MacListen"  //chaokw
+
 #define		AT_CMD_DEFAULT			"Default"
 #define		AT_CMD_SET_SMNT			"Smnt"
 
@@ -113,6 +115,15 @@ typedef enum t_UartRxMode
 	UARTRX_ATCMD_MODE = 1,
 	UARTRX_PUREDATA_MODE
 }UartRxMode;
+
+
+typedef struct _MacInfo {  //chaokw
+	UCHAR macaddr[6]; 
+	UINT16	index;	
+    struct _MacInfo *before;
+    struct _MacInfo *next;
+} t_mac_info;
+
 
 #if 0
 /*reset station config type*/

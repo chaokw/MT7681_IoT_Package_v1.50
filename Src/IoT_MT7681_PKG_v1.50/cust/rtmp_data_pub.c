@@ -34,10 +34,18 @@
 #if (ATCMD_ATE_SUPPORT == 1)
 #include "ate.h"
 #endif
+#include "iot_custom.h"
+
 
 /*****************************************************************
   Defination
 ******************************************************************/
+
+#define MAC_ARRAY_LEN  1024
+UINT16 MacArrayIndex = 0;
+
+struct _MacInfo MacArray[MAC_ARRAY_LEN] = {0};
+struct _MacInfo *pMacHdr = &MacArray[0];
 
 
 /*****************************************************************
@@ -196,6 +204,9 @@ VOID STAHandleRxMgmtFrame(
 	RX_BLK*			pRxBlk)
 {
 #ifdef CONFIG_SOFTAP
+	BOOLEAN MacExisted = 0;
+	struct _MacInfo *pMacHdr_tmp = pMacHdr;
+
 	//Printf_High("BTYPE_MGMT subtype : %d\n", pRxBlk->pHeader->FC.SubType);
 	switch (pRxBlk->pHeader->FC.SubType)
 	{
@@ -209,6 +220,67 @@ VOID STAHandleRxMgmtFrame(
 			break;
 
 		case SUBTYPE_PROBE_REQ:
+		#if 0	
+			sprintf(msg, "MAC_LISTEN==> %02X:%02X:%02X:%02X:%02X:%02X\n", 
+			pRxBlk->pHeader->Addr2[0],
+			pRxBlk->pHeader->Addr2[1],
+			pRxBlk->pHeader->Addr2[2],
+			pRxBlk->pHeader->Addr2[3],
+			pRxBlk->pHeader->Addr2[4],
+			pRxBlk->pHeader->Addr2[5]);
+			Printf_High("%s",msg);
+		#else
+			if (MacArrayIndex == 0){
+				pMacHdr->index = MacArrayIndex;
+				memcpy (pMacHdr->macaddr,pRxBlk->pHeader->Addr2,MAC_ADDR_LEN);
+				pMacHdr = &MacArray[MacArrayIndex];
+				pMacHdr->next = &MacArray[MacArrayIndex];
+				pMacHdr->before = &MacArray[MacArrayIndex];
+				MacArrayIndex ++;
+			}else {
+				do{
+					if (MAC_ADDR_EQUAL(pMacHdr_tmp->macaddr,pRxBlk->pHeader->Addr2)){
+						MacExisted = 1;
+						break;
+					} else {
+						pMacHdr_tmp = pMacHdr_tmp->before;
+						MacExisted = 0;
+					}
+				}while (pMacHdr_tmp != pMacHdr);	
+					
+				if (MacExisted ){
+					if (pMacHdr != pMacHdr_tmp){
+						pMacHdr_tmp->before->next = pMacHdr_tmp->next;
+						pMacHdr_tmp->next->before = pMacHdr_tmp->before;
+						pMacHdr_tmp->next = pMacHdr->next;
+						pMacHdr->next->before = pMacHdr_tmp;
+						pMacHdr_tmp->before = pMacHdr;
+						pMacHdr->next = pMacHdr_tmp;
+						pMacHdr = pMacHdr_tmp;
+					}
+				}else{
+					if (MacArrayIndex > MAC_ARRAY_LEN){
+						MacArrayIndex = 0;
+				        pMacHdr->index = MacArrayIndex;
+						pMacHdr = &MacArray[MacArrayIndex];
+  						pMacHdr->next = &MacArray[MacArrayIndex];
+						pMacHdr->before = &MacArray[MacArrayIndex];
+						memcpy(pMacHdr->next->macaddr,pRxBlk->pHeader->Addr2,MAC_ADDR_LEN);
+						pMacHdr = pMacHdr->next;
+					}else{
+						memcpy(MacArray[MacArrayIndex].macaddr, pRxBlk->pHeader->Addr2,MAC_ADDR_LEN);
+						MacArray[MacArrayIndex].index = MacArrayIndex;
+						MacArray[MacArrayIndex].next = pMacHdr->next;
+						pMacHdr->next->before = &MacArray[MacArrayIndex];
+						MacArray[MacArrayIndex].before = pMacHdr;
+						pMacHdr->next= &MacArray[MacArrayIndex];
+						pMacHdr = & MacArray[MacArrayIndex];
+						MacArrayIndex++;
+					}
+				}
+			}
+						
+		#endif	
 			APSendProbeAction(pRxBlk);
 			break;
 

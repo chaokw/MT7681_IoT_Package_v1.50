@@ -72,7 +72,7 @@ ECO_VERSION				=	$(e)
 RELEASE_VERSION			=	$(r)
 BT_RADIO_VERSION		=	$(o)
 WL_RADIO_VERSION		=	$(o)
-BUILD_TYPE				=	$(b)
+BUILD_TYPE				=	2
 PACKAGE_BUILD			=	$(PKG)
 
 #*******************************************************************************

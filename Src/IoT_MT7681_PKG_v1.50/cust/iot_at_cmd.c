@@ -908,6 +908,64 @@ VOID IoT_exec_AT_cmd_reboot(VOID)
 }
 #endif
 
+
+#define JSON_FMT  "{\"mac\":\"%s\"},"
+#define MAC_ARRAY_LEN  1024
+#define SEND_BUFFER_LEN  4096
+
+extern struct _MacInfo MacArray[MAC_ARRAY_LEN];
+extern struct _MacInfo *pMacHdr;
+extern UINT16 MacArrayIndex;
+
+
+VOID IoT_exec_AT_cmd_mac_listen(VOID)         //chaokw
+{
+	char *ptr = NULL;
+	char *send_buffer = NULL;
+	char macaddr_str[64];
+	int i;
+	
+	send_buffer = (char *)malloc(SEND_BUFFER_LEN);
+	memset(send_buffer, 0, SEND_BUFFER_LEN);
+	ptr = send_buffer;
+	sprintf(ptr, "{\"macscan\":[");
+	ptr += strlen(ptr);
+
+	//for (i=0; i<pMacHdr->index; i++) {
+	for (i=0; i<MacArrayIndex; i++) {
+		sprintf(macaddr_str, "%02X:%02X:%02X:%02X:%02X:%02X", 
+			MacArray[i].macaddr[0],
+			MacArray[i].macaddr[1],
+			MacArray[i].macaddr[2],
+			MacArray[i].macaddr[3],
+			MacArray[i].macaddr[4],
+			MacArray[i].macaddr[5]);
+		sprintf(ptr, JSON_FMT, macaddr_str);
+		ptr += strlen(ptr);
+
+		if(strlen(send_buffer) > SEND_BUFFER_LEN - 28)
+			break;
+	}
+
+	if(*(ptr - 1) == ',')
+		*(--ptr) = 0;
+	sprintf(ptr, "]}");
+	//Printf_High("MacArrayIndex=%d",MacArrayIndex);
+	Printf_High("send_buffer_len=%d\n",strlen(send_buffer));
+	Printf_High("%s",send_buffer);		
+
+	free(send_buffer);
+
+	MacArrayIndex = 0;
+	pMacHdr->index = MacArrayIndex;
+	pMacHdr = &MacArray[MacArrayIndex];
+	pMacHdr->next = &MacArray[MacArrayIndex];
+	pMacHdr->before = &MacArray[MacArrayIndex];
+
+	return;
+}
+
+
 #if (ATCMD_SET_SMNT_SUPPORT == 1)
 /*========================================================================
 	Routine Description:
@@ -1075,6 +1133,12 @@ INT16 IoT_parse_ATcommand(PCHAR cmd_buf, INT16 at_cmd_len)
 		IoT_exec_AT_cmd_reboot();
 	}
 #endif	
+
+	else if(!memcmp(cmd_buf,AT_CMD_MACLISTEN,sizeof(AT_CMD_MACLISTEN)-1))
+	{
+		IoT_exec_AT_cmd_mac_listen();
+	}
+
 #if (ATCMD_CH_SWITCH_SUPPORT == 1)
 	/* Format:  AT#Channel -b0 -c6+enter */
 	//-b:  [0/1]	 0=BW_20,	 1=BW_40
