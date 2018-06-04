@@ -918,7 +918,7 @@ extern struct _MacInfo *pMacHdr;
 extern UINT16 MacArrayIndex;
 
 
-VOID IoT_exec_AT_cmd_mac_listen(VOID)         //chaokw
+VOID IoT_exec_AT_cmd_mac_listen(VOID)
 {
 	char *ptr = NULL;
 	char *send_buffer = NULL;
@@ -931,7 +931,6 @@ VOID IoT_exec_AT_cmd_mac_listen(VOID)         //chaokw
 	sprintf(ptr, "{\"macscan\":[");
 	ptr += strlen(ptr);
 
-	//for (i=0; i<pMacHdr->index; i++) {
 	for (i=0; i<MacArrayIndex; i++) {
 		sprintf(macaddr_str, "%02X:%02X:%02X:%02X:%02X:%02X", 
 			MacArray[i].macaddr[0],
